@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Final Project",
+    "slug": "finalmma",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/looket-icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/looket-splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FACC15"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mma.finalmma",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Chúng tôi cần quyền truy cập camera để chụp ảnh",
+        "NSPhotoLibraryUsageDescription": "Chúng tôi cần quyền truy cập thư viện ảnh",
+        "NSPhotoLibraryAddUsageDescription": "Chúng tôi cần quyền lưu ảnh vào thư viện"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/looket-adaptive-icon.png",
+        "backgroundColor": "#FACC15"
+      },
+      "package": "com.mma.finalmma",
+      "softwareKeyboardLayoutMode": "pan",
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/looket-favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/looket-icon.png",
+          "color": "#FACC15"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bd55fcc9-9c42-425c-8a07-3973dab7dc3f"
+      }
+    }
+  }
+}
