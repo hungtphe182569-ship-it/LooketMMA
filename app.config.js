@@ -4,7 +4,7 @@
 module.exports = ({ config }) => {
   return {
     ...config,
-    name: "Final Project",
+    name: "LOOKET MMA",
     slug: "finalmma",
     version: "1.0.0",
     orientation: "portrait",
