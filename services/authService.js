@@ -307,6 +307,15 @@ export async function searchUsersByQuery(searchQuery, maxResults = 10) {
 export async function uploadAvatar(fileUri, userId) {
   try {
     const { CLOUDINARY_CONFIG } = require('./cloudinaryPhotoService');
+    if (!CLOUDINARY_CONFIG.cloud_name || !CLOUDINARY_CONFIG.upload_preset) {
+      return {
+        publicId: null,
+        secureUrl: fileUri,
+        width: null,
+        height: null,
+        localOnly: true,
+      };
+    }
     
     if (!CLOUDINARY_CONFIG.cloud_name || !CLOUDINARY_CONFIG.upload_preset) {
       throw new Error("Cloudinary chưa được cấu hình");
@@ -347,7 +356,7 @@ export async function uploadAvatar(fileUri, userId) {
       height: result.height,
     };
   } catch (error) {
-    console.error("Error uploading avatar:", error);
+    console.warn("Error uploading avatar:", error);
     throw new Error(`Không thể tải ảnh đại diện: ${error.message}`);
   }
 }

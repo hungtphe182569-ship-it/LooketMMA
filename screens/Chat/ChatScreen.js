@@ -123,11 +123,11 @@ export default function ChatScreen({ route, navigation }) {
           const asset = result.assets[0];
           const uri = asset.uri;
           
-          // Upload image to Cloudinary
+          // Upload image to Cloudinary when configured; otherwise use local URI.
           const uploadResult = await uploadAvatar(uri, user.uid);
           
           // Extract the secure URL from the upload result
-          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url;
+          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url || uri;
           
           if (!imageUrlString) {
             throw new Error('Không nhận được URL ảnh từ Cloudinary');
@@ -138,14 +138,14 @@ export default function ChatScreen({ route, navigation }) {
           // Send image message - subscribeToMessages will update UI automatically
           await sendImageMessage(chatId, user.uid, imageUrlString);
         } catch (uploadError) {
-          console.error('Error uploading image:', uploadError);
+          console.warn('Error uploading image:', uploadError);
           Alert.alert('Lỗi', 'Không thể tải ảnh lên. Vui lòng thử lại.');
         } finally {
           setSending(false);
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.warn('Error picking image:', error);
       Alert.alert('Lỗi', 'Không thể chọn hình ảnh');
       setSending(false);
     }
