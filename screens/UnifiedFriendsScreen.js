@@ -171,6 +171,11 @@ export default function UnifiedFriendsScreen({ navigation }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Bạn bè</Text>
         <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('FamilyRequest')}>
+            <Ionicons name="people-circle" size={25} color="#FACC15" />
+          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={() => navigation.navigate('ChatList')}>

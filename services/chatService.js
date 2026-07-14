@@ -334,16 +334,19 @@ export async function markMessagesAsRead(chatId, userId) {
 export async function getUnreadCount(chatId, userId) {
   try {
     const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const q = query(
-      messagesRef,
-      where('senderId', '!=', userId),
-      where('read', '==', false)
-    );
+    const snapshot = await getDocs(messagesRef);
+    let unreadCount = 0;
 
-    const snapshot = await getDocs(q);
-    return snapshot.size;
+    snapshot.forEach(doc => {
+      const message = doc.data();
+      if (message.senderId !== userId && message.read === false) {
+        unreadCount += 1;
+      }
+    });
+
+    return unreadCount;
   } catch (error) {
-    console.error('❌ Error getting unread count:', error);
+    console.warn('Error getting unread count:', error);
     return 0;
   }
 }
