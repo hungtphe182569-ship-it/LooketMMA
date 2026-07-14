@@ -47,7 +47,7 @@ export default function FriendAlbumScreen({ route, navigation }) {
       style={styles.photoItem}
       onPress={() => navigation.navigate('OtherPhotoDetail', { photo: item })}>
       <Image 
-        source={{ uri: item.cloudinaryUrl }} 
+        source={{ uri: item.cloudinaryUrl || item.uri || item.localUri }}
         style={styles.photoImage}
         resizeMode="cover"
       />

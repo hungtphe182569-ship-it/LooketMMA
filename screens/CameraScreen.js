@@ -488,7 +488,7 @@ export default function CameraScreen({ navigation }) {
         created.secureUrl ||
         created.cloudinary?.secureUrl;
       const isLocalOnlyPhoto = !cloudinaryUrl || String(cloudinaryUrl).startsWith('file://');
-      if (!isLocalOnlyPhoto) {
+      if (cloudinaryUrl) {
         await addPhotoToUserAlbum(user.uid, {
         id: photoId,
         cloudinaryUrl: cloudinaryUrl,

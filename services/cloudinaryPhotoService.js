@@ -60,6 +60,20 @@ function extractAutoTags(uploadResult) {
 
 export async function uploadImageToCloudinary(fileUri, userId) {
   try {
+    if (!CLOUDINARY_CONFIG.cloud_name || !CLOUDINARY_CONFIG.upload_preset) {
+      return {
+        publicId: null,
+        secureUrl: fileUri,
+        width: null,
+        height: null,
+        createdAt: new Date().toISOString(),
+        bytes: null,
+        format: null,
+        autoTags: [],
+        localOnly: true,
+      };
+    }
+
     assertCloudinaryConfigured();
 
     console.log("📤 Cloudinary config:", {
@@ -117,7 +131,7 @@ export async function uploadImageToCloudinary(fileUri, userId) {
 
     if (!response.ok) {
       const errorMessage = result.error?.message || result.message || `HTTP ${response.status}`;
-      console.error("❌ Cloudinary upload failed:", {
+      console.warn("Cloudinary upload failed:", {
         status: response.status,
         statusText: response.statusText,
         error: result
@@ -138,7 +152,18 @@ export async function uploadImageToCloudinary(fileUri, userId) {
       autoTags,
     };
   } catch (error) {
-    console.error("❌ Cloudinary upload error:", error);
+    console.warn("Cloudinary upload error:", error);
+    return {
+      publicId: null,
+      secureUrl: fileUri,
+      width: null,
+      height: null,
+      createdAt: new Date().toISOString(),
+      bytes: null,
+      format: null,
+      autoTags: [],
+      localOnly: true,
+    };
     throw new Error(`Failed to upload image to Cloudinary: ${error.message}`);
   }
 }
@@ -400,7 +425,8 @@ export async function savePhotoToCloudinary({ uri, coords, note = "", labels = [
     return photo;
 
   } catch (cloudinaryError) {
-    console.error("❌ Cloudinary upload failed:", cloudinaryError);
+    console.warn("Cloudinary upload failed:", cloudinaryError);
+    return await savePhotoLocal({ uri, coords, note, labels, userId, isSelfie, source });
 
     // Re-throw the error instead of falling back to local storage
     throw new Error(`Không thể upload ảnh lên Cloudinary: ${cloudinaryError.message}`);

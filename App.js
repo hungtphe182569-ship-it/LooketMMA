@@ -1,5 +1,5 @@
 import React from "react";
-import AppNavigator from "./navigation/AppNavigator";
+import AppNavigator from "./navigation/AppNavigator.js";
 import { ThemeProvider as OldThemeProvider } from "./context/ThemeContext";
 import { ThemeProvider } from "./hooks/useTheme";
 import { ReloadProvider } from "./context/ReloadContext";
@@ -15,5 +15,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
 

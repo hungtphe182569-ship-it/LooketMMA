@@ -93,7 +93,7 @@ export async function uploadFamilyPhoto({ familyId, userId, userName, uri, coord
     
     return photoData;
   } catch (error) {
-    console.error("Error uploading family photo:", error);
+    console.warn("Error uploading family photo:", error);
     throw error;
   }
 }

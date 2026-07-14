@@ -54,7 +54,7 @@ export async function addPhotoToUserAlbum(userId, photoData) {
     const uniqueId = photoData.id || `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     const remoteUrl = pickRemotePhotoUrl(photoData);
-    if (!remoteUrl || String(remoteUrl).startsWith("file://")) {
+    if (!remoteUrl) {
       throw new Error("cloudinaryUrl không hợp lệ khi lưu album");
     }
 
@@ -190,7 +190,7 @@ export async function getUserAlbum(userId, maxPhotos = 100) {
     const validPhotos = (data.photos || [])
       .filter(photo => {
         const remoteUrl = photo.cloudinaryUrl || photo.uri;
-        if (!remoteUrl || String(remoteUrl).startsWith("file://")) {
+        if (!remoteUrl) {
           console.warn("⚠️ Skipping photo without valid remote URL:", photo.id);
           return false;
         }
