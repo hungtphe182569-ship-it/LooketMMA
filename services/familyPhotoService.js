@@ -12,7 +12,7 @@ import {
   deleteDoc
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { uploadImageToCloudinary } from "./cloudinaryService";
+import { uploadImageToCloudinary } from "./cloudinaryPhotoService";
 import { getFamilyById } from "./familyService";
 import { sendNotification, NOTIFICATION_TYPES } from "./notificationService";
 import { getUserById } from "./authService";
@@ -109,8 +109,24 @@ export async function getFamilyPhotos(familyId, userId) {
       return [];
     }
     
-    // Get all photos from all members' personal albums
     const allPhotos = [];
+    const seenPhotoIds = new Set();
+
+    const familyPhotosRef = collection(db, "familyPhotos", familyId, "photos");
+    const familyPhotosSnapshot = await getDocs(familyPhotosRef);
+
+    familyPhotosSnapshot.forEach(photoDoc => {
+      const photo = photoDoc.data();
+      const photoKey = photo.id || photoDoc.id;
+      seenPhotoIds.add(photoKey);
+      allPhotos.push({
+        ...photo,
+        id: photoKey,
+        cloudinaryUrl: photo.cloudinaryUrl || photo.uri,
+        url: photo.url || photo.uri,
+        familyId
+      });
+    });
     
     for (const memberId of family.members) {
       try {
@@ -126,13 +142,20 @@ export async function getFamilyPhotos(familyId, userId) {
           const albumData = userAlbumSnap.data();
           const memberPhotos = albumData.photos || [];
           
-          // Add member info to each photo
           memberPhotos.forEach(photo => {
+            const photoKey = photo.id || photo.publicId || photo.cloudinaryUrl || photo.url;
+            if (photoKey && seenPhotoIds.has(photoKey)) {
+              return;
+            }
+            if (photoKey) {
+              seenPhotoIds.add(photoKey);
+            }
+
             allPhotos.push({
               ...photo,
               uploadedBy: memberId,
               uploadedByName: displayName,
-              familyId: familyId
+              familyId
             });
           });
         }

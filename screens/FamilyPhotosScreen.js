@@ -8,7 +8,9 @@ import {
   Image,
   Dimensions,
   RefreshControl,
-  Alert
+  Alert,
+  Modal,
+  FlatList
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -18,7 +20,8 @@ import {
   getFamilyPhotos,
   uploadFamilyPhoto
 } from "../services/familyPhotoService";
-import { getFamilyMembers } from "../services/familyService";
+import { getFamilyMembers, sendFamilyRequest } from "../services/familyService";
+import { getFriends } from "../services/friendService";
 
 const { width } = Dimensions.get("window");
 const ITEM_SIZE = (width - 32) / 4;
@@ -28,8 +31,11 @@ export default function FamilyPhotosScreen({ route, navigation }) {
   const { user } = useContext(AuthContext);
   const [photos, setPhotos] = useState([]);
   const [members, setMembers] = useState([]);
+  const [friends, setFriends] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [invitingId, setInvitingId] = useState(null);
 
   useEffect(() => {
     loadPhotos();
@@ -67,6 +73,36 @@ export default function FamilyPhotosScreen({ route, navigation }) {
     setRefreshing(false);
   };
 
+  const loadFriendsForInvite = async () => {
+    if (!user?.uid) return;
+    try {
+      const friendsData = await getFriends(user.uid, true);
+      setFriends(friendsData);
+    } catch (error) {
+      console.error("Error loading friends for family invite:", error);
+      Alert.alert("Lỗi", "Không thể tải danh sách bạn bè");
+    }
+  };
+
+  const openInviteModal = async () => {
+    await loadFriendsForInvite();
+    setShowInviteModal(true);
+  };
+
+  const handleInviteFriend = async (friend) => {
+    if (!family?.id || !friend?.uid || !user?.uid) return;
+
+    try {
+      setInvitingId(friend.uid);
+      await sendFamilyRequest(family.id, user.uid, friend.uid);
+      Alert.alert("Thành công", `Đã gửi lời mời tham gia gia đình cho ${friend.displayName || friend.email}`);
+    } catch (error) {
+      Alert.alert("Lỗi", error.message || "Không thể gửi lời mời");
+    } finally {
+      setInvitingId(null);
+    }
+  };
+
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -89,7 +125,12 @@ export default function FamilyPhotosScreen({ route, navigation }) {
   const handleUploadPhoto = async (uri) => {
     try {
       setUploading(true);
-      await uploadFamilyPhoto(family.id, user.uid, uri);
+      await uploadFamilyPhoto({
+        familyId: family.id,
+        userId: user.uid,
+        userName: user.displayName || user.email || "Người dùng",
+        uri
+      });
       Alert.alert("Thành công", "Đã tải ảnh lên");
       loadPhotos();
     } catch (error) {
@@ -106,13 +147,18 @@ export default function FamilyPhotosScreen({ route, navigation }) {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{family?.name}</Text>
-        <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
-          <Ionicons 
-            name="add-circle" 
-            size={28} 
-            color={uploading ? "#ccc" : "#F59E0B"} 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={openInviteModal}>
+            <Ionicons name="person-add" size={26} color="#F59E0B" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePickImage} disabled={uploading}>
+            <Ionicons
+              name="add-circle"
+              size={28}
+              color={uploading ? "#ccc" : "#F59E0B"}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsBar}>
@@ -157,7 +203,7 @@ export default function FamilyPhotosScreen({ route, navigation }) {
                       style={styles.photoItem}
                       onPress={() => navigateToPhotoDetail(navigation, photo, user)}>
                       <Image 
-                        source={{ uri: photo.cloudinaryUrl || photo.url }} 
+                        source={{ uri: photo.cloudinaryUrl || photo.url || photo.uri }}
                         style={styles.photoImage}
                         resizeMode="cover"
                       />
@@ -177,6 +223,57 @@ export default function FamilyPhotosScreen({ route, navigation }) {
           </View>
         </View>
       )}
+
+      <Modal
+        visible={showInviteModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowInviteModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.inviteSheet}>
+            <View style={styles.inviteHeader}>
+              <Text style={styles.inviteTitle}>Mời thành viên</Text>
+              <TouchableOpacity onPress={() => setShowInviteModal(false)}>
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={friends.filter(friend => !members.some(member => member.uid === friend.uid))}
+              keyExtractor={(item) => item.uid}
+              ListEmptyComponent={
+                <View style={styles.inviteEmpty}>
+                  <Ionicons name="people-outline" size={48} color="#ccc" />
+                  <Text style={styles.inviteEmptyText}>Không có bạn bè nào để mời</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.inviteItem}>
+                  {item.avatar ? (
+                    <Image source={{ uri: item.avatar }} style={styles.inviteAvatar} />
+                  ) : (
+                    <View style={styles.inviteAvatarPlaceholder}>
+                      <Ionicons name="person" size={22} color="#fff" />
+                    </View>
+                  )}
+                  <View style={styles.inviteInfo}>
+                    <Text style={styles.inviteName}>{item.displayName || item.email}</Text>
+                    <Text style={styles.inviteEmail}>{item.email}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.inviteButton}
+                    onPress={() => handleInviteFriend(item)}
+                    disabled={invitingId === item.uid}>
+                    <Text style={styles.inviteButtonText}>
+                      {invitingId === item.uid ? "Đang gửi" : "Mời"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -198,6 +295,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   statsBar: {
     flexDirection: 'row',
@@ -288,5 +390,86 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  inviteSheet: {
+    maxHeight: '75%',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 28,
+  },
+  inviteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  inviteTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  inviteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  inviteAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  inviteAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+  },
+  inviteInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  inviteName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000',
+  },
+  inviteEmail: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  inviteButton: {
+    minWidth: 64,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#F59E0B',
+  },
+  inviteButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  inviteEmpty: {
+    alignItems: 'center',
+    paddingVertical: 36,
+  },
+  inviteEmptyText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#777',
   },
 });
