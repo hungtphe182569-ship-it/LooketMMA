@@ -4,7 +4,7 @@ import SafeImage from "../../components/SafeImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
-import { deletePhotoLocal } from "../../services/cloudinaryPhotoService";
+import { deletePhotoFromCloudinary } from "../../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../../services/favoriteService";
 
 export default function PhotoDetailScreen({ route, navigation }) {
@@ -92,7 +92,7 @@ export default function PhotoDetailScreen({ route, navigation }) {
           onPress: async () => {
             try {
               console.log('Deleting photo:', photo.id, 'for user:', photo.userId);
-              const result = await deletePhotoLocal(photo.userId, photo.id);
+              const result = await deletePhotoFromCloudinary(photo.id, photo.userId || user.uid);
               console.log('Delete result:', result);
               Alert.alert('Thành công', 'Đã xóa ảnh', [
                 {
@@ -320,4 +320,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-

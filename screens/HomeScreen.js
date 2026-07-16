@@ -18,8 +18,8 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useNotifications } from "../context/NotificationContext";
 import { Text } from "../components/ui";
-import { getUserAlbum, deletePhotoFromUserAlbum } from "../services/userAlbumService";
-import { getAllPhotos } from "../services/cloudinaryPhotoService";
+import { getUserAlbum } from "../services/userAlbumService";
+import { getAllPhotos, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../services/favoriteService";
 import { subscribeToUserChats, getUnreadCount } from "../services/chatService";
 
@@ -82,7 +82,7 @@ function OwnFeedCard({ item, currentUser, onDelete }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deletePhotoFromUserAlbum(currentUser.uid, item.id);
+              await deletePhotoFromCloudinary(item.id, currentUser.uid);
               if (onDelete) onDelete(item.id);
             } catch (e) {
               Alert.alert('Lỗi', 'Không thể xóa ảnh: ' + (e?.message || String(e)));

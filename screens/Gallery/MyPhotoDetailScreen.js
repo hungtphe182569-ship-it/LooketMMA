@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
-import { deletePhotoLocal } from "../../services/cloudinaryPhotoService";
+import { deletePhotoFromCloudinary } from "../../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../../services/favoriteService";
 import { getReactions } from "../../services/reactionService";
 
@@ -105,12 +105,7 @@ export default function MyPhotoDetailScreen({ route, navigation }) {
             try {
               console.log('Deleting photo:', { photoId: photo.id, userId: photo.userId });
 
-              // Xóa từ local storage
-              await deletePhotoLocal(photo.userId || user.uid, photo.id);
-
-              // Xóa từ Firebase userAlbum
-              const { deletePhotoFromUserAlbum } = require('../../services/userAlbumService');
-              await deletePhotoFromUserAlbum(user.uid, photo.id);
+              await deletePhotoFromCloudinary(photo.id, photo.userId || user.uid);
 
               Alert.alert('Thành công', 'Đã xóa ảnh', [
                 {

@@ -16,8 +16,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SafeImage from "../components/SafeImage";
 import { AuthContext } from "../context/AuthContext";
-import { getUserAlbum, getFriendsRecentPhotos, deletePhotoFromUserAlbum } from "../services/userAlbumService";
-import { getAllPhotos } from "../services/cloudinaryPhotoService";
+import { getUserAlbum, getFriendsRecentPhotos } from "../services/userAlbumService";
+import { getAllPhotos, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../services/favoriteService";
 import { addReaction, removeReaction, getReactions, EMOJI_LIST } from "../services/reactionService";
 
@@ -120,7 +120,7 @@ function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deletePhotoFromUserAlbum(currentUser.uid, item.id);
+              await deletePhotoFromCloudinary(item.id, currentUser.uid);
               if (onDeleteItem) onDeleteItem(item.id);
             } catch (e) {
               Alert.alert('Lỗi', 'Không thể xóa ảnh: ' + (e?.message || String(e)));

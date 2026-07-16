@@ -521,27 +521,20 @@ export async function deletePhotoFromCloudinary(photoId, userId) {
     // Import Firebase delete function
     const { deletePhotoFromUserAlbum } = require('./userAlbumService');
 
-    // Delete from Firebase first (main data source)
+    // Photos are mirrored in Firestore and AsyncStorage. Both copies must be
+    // removed or screens which merge the sources will restore the photo.
     const deletedPhoto = await deletePhotoFromUserAlbum(userId, photoId);
+    const allPhotos = await readAll();
+    const filtered = allPhotos.filter(
+      p => !(String(p.userId) === String(userId) && String(p.id) === String(photoId))
+    );
+    await writeAll(filtered);
 
-    if (!deletedPhoto) {
-      console.log('⚠️ Photo not found in Firebase, checking local storage...');
-
-      // Fallback: try local storage
-      const allPhotos = await readAll();
-      const photoToDelete = allPhotos.find(p => p.id === photoId && p.userId === userId);
-
-      if (!photoToDelete) {
-        throw new Error('Không tìm thấy ảnh để xóa');
-      }
-
-      // Delete from local storage
-      const filtered = allPhotos.filter(p => !(p.userId === userId && p.id === photoId));
-      await writeAll(filtered);
-      console.log('✅ Photo deleted from local storage:', photoId);
-    } else {
-      console.log('✅ Photo deleted from Firebase:', photoId);
-    }
+    console.log('✅ Photo deleted from all app data sources:', {
+      photoId,
+      firebase: Boolean(deletedPhoto),
+      local: filtered.length !== allPhotos.length,
+    });
 
     return true;
   } catch (error) {
