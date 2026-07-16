@@ -35,8 +35,15 @@ service cloud.firestore {
     match /userAlbums/{userId} {
       // Helper function to check if users are friends
       function isFriend() {
-        let friendDoc = get(/databases/$(database)/documents/friends/$(request.auth.uid));
-        return friendDoc != null && friendDoc.data.friends != null && friendDoc.data.friends.hasAny([userId]);
+        return (
+          exists(/databases/$(database)/documents/friends/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends is list &&
+          userId in get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends
+        ) || (
+          exists(/databases/$(database)/documents/friends/$(userId)) &&
+          get(/databases/$(database)/documents/friends/$(userId)).data.friends is list &&
+          request.auth.uid in get(/databases/$(database)/documents/friends/$(userId)).data.friends
+        );
       }
       
       // Users can read their own album
@@ -120,8 +127,15 @@ service cloud.firestore {
     match /users/{userId}/data/{document} {
       // Helper function to check if users are friends
       function isFriend() {
-        let friendDoc = get(/databases/$(database)/documents/friends/$(request.auth.uid));
-        return friendDoc != null && friendDoc.data.friends != null && friendDoc.data.friends.hasAny([userId]);
+        return (
+          exists(/databases/$(database)/documents/friends/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends is list &&
+          userId in get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends
+        ) || (
+          exists(/databases/$(database)/documents/friends/$(userId)) &&
+          get(/databases/$(database)/documents/friends/$(userId)).data.friends is list &&
+          request.auth.uid in get(/databases/$(database)/documents/friends/$(userId)).data.friends
+        );
       }
       
       // Users can read their own data
@@ -151,8 +165,15 @@ service cloud.firestore {
     match /userAlbums/{userId} {
       // Helper function to check if users are friends
       function isFriend() {
-        let friendDoc = get(/databases/$(database)/documents/friends/$(request.auth.uid));
-        return friendDoc != null && friendDoc.data.friends != null && friendDoc.data.friends.hasAny([userId]);
+        return (
+          exists(/databases/$(database)/documents/friends/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends is list &&
+          userId in get(/databases/$(database)/documents/friends/$(request.auth.uid)).data.friends
+        ) || (
+          exists(/databases/$(database)/documents/friends/$(userId)) &&
+          get(/databases/$(database)/documents/friends/$(userId)).data.friends is list &&
+          request.auth.uid in get(/databases/$(database)/documents/friends/$(userId)).data.friends
+        );
       }
       
       // Users can read their own album

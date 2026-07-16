@@ -62,24 +62,27 @@ export async function registerUser(email, password, displayName = "") {
 }
 
 // Generate search terms for efficient searching
-function generateSearchTerms(displayName, email) {
-  const terms = [];
-  const name = displayName.toLowerCase();
-  const emailLower = email.toLowerCase();
-  
-  // Add full terms
-  terms.push(name, emailLower);
-  
-  // Add prefixes for autocomplete
-  for (let i = 1; i <= name.length; i++) {
-    terms.push(name.substring(0, i));
-  }
-  
-  for (let i = 1; i <= emailLower.length; i++) {
-    terms.push(emailLower.substring(0, i));
-  }
-  
-  return [...new Set(terms)];
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function generateSearchTerms(displayName) {
+  const normalizedName = normalizeSearchText(displayName);
+  const terms = new Set();
+
+  // Support prefixes of the full name and every word, e.g. both "nguyen"
+  // and "an" can find "Nguyen Van An". Email is intentionally excluded.
+  [normalizedName, ...normalizedName.split(/\s+/)].filter(Boolean).forEach((part) => {
+    for (let i = 1; i <= part.length; i++) {
+      terms.add(part.substring(0, i));
+    }
+  });
+
+  return [...terms];
 }
 
 export async function loginUser(email, password) {
@@ -256,7 +259,7 @@ export async function searchUsersByQuery(searchQuery, maxResults = 10) {
       return [];
     }
     
-    const searchTerm = searchQuery.toLowerCase().trim();
+    const searchTerm = normalizeSearchText(searchQuery);
     const cacheKey = `${searchTerm}_${maxResults}`;
     
     // Check memory cache
@@ -288,16 +291,34 @@ export async function searchUsersByQuery(searchQuery, maxResults = 10) {
     
     // Fallback to network
     querySnapshot = await getDocs(q);
-    const users = [];
+    let users = [];
     querySnapshot.forEach((doc) => {
       users.push({ id: doc.id, uid: doc.id, ...doc.data() });
     });
+    // Existing documents may still contain legacy email terms. Never return a
+    // result unless the typed text actually matches the user's display name.
+    users = users.filter((user) =>
+      normalizeSearchText(user.displayName).includes(searchTerm)
+    );
+
+    // Older profiles may not yet have the new name-only searchTerms. This
+    // fallback keeps name search working without requiring a migration first.
+    if (users.length === 0) {
+      const allUsersSnapshot = await getDocs(usersRef);
+      allUsersSnapshot.forEach((userDoc) => {
+        const data = userDoc.data();
+        if (normalizeSearchText(data.displayName).includes(searchTerm)) {
+          users.push({ id: userDoc.id, uid: userDoc.id, ...data });
+        }
+      });
+      users = users.slice(0, maxResults);
+    }
     
     searchCache.set(cacheKey, { data: users, time: Date.now() });
     return users;
   } catch (error) {
     console.error("Error searching users:", error);
-    const cacheKey = `${searchQuery.toLowerCase().trim()}_${maxResults}`;
+    const cacheKey = `${normalizeSearchText(searchQuery)}_${maxResults}`;
     const cached = searchCache.get(cacheKey);
     return cached ? cached.data : [];
   }

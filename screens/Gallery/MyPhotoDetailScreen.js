@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from "react-native";
 import SafeImage from "../../components/SafeImage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
-import { deletePhotoFromCloudinary } from "../../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../../services/favoriteService";
 import { getReactions } from "../../services/reactionService";
 
@@ -89,50 +88,6 @@ export default function MyPhotoDetailScreen({ route, navigation }) {
     }
   };
 
-  const handleDeletePhoto = () => {
-    Alert.alert(
-      'Xóa ảnh',
-      'Bạn có chắc chắn muốn xóa ảnh này?',
-      [
-        {
-          text: 'Hủy',
-          style: 'cancel',
-        },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('Deleting photo:', { photoId: photo.id, userId: photo.userId });
-
-              await deletePhotoFromCloudinary(photo.id, photo.userId || user.uid);
-
-              Alert.alert('Thành công', 'Đã xóa ảnh', [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    navigation.navigate('Home');
-                    // Trigger refresh bằng cách reset navigation state
-                    setTimeout(() => {
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'Home' }],
-                      });
-                    }, 100);
-                  }
-                }
-              ]);
-            } catch (error) {
-              console.error('Error deleting photo:', error);
-              console.error('Photo data:', photo);
-              Alert.alert('Lỗi', 'Không thể xóa ảnh: ' + (error?.message || String(error)));
-            }
-          },
-        },
-      ]
-    );
-  };
-
   if (!photo) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
@@ -177,11 +132,6 @@ export default function MyPhotoDetailScreen({ route, navigation }) {
               size={26}
               color={favorited ? "#ff3b30" : "#fff"}
             />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleDeletePhoto}
-            style={styles.headerButton}>
-            <Ionicons name="trash-outline" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>

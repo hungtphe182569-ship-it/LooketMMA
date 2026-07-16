@@ -152,7 +152,7 @@ export default function SearchUsersScreen({ navigation }) {
         <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Tìm theo tên hoặc email..."
+          placeholder="Tìm theo tên người dùng..."
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -193,7 +193,7 @@ export default function SearchUsersScreen({ navigation }) {
                   <Ionicons name="people-outline" size={64} color="#ccc" />
                   <Text style={styles.emptyText}>Tìm kiếm người dùng</Text>
                   <Text style={styles.emptySubtext}>
-                    Nhập tên hoặc email để bắt đầu
+                    Nhập tên người dùng để bắt đầu
                   </Text>
                 </>
               )}

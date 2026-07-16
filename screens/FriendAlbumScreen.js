@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList, 
-  Image, 
   TouchableOpacity, 
   StyleSheet, 
   RefreshControl, 
@@ -12,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getFriendAlbum } from "../services/userAlbumService";
 import { AuthContext } from "../context/AuthContext";
+import SafeImage from "../components/SafeImage";
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - 48) / 3;
@@ -46,7 +46,7 @@ export default function FriendAlbumScreen({ route, navigation }) {
     <TouchableOpacity
       style={styles.photoItem}
       onPress={() => navigation.navigate('OtherPhotoDetail', { photo: item })}>
-      <Image 
+      <SafeImage
         source={{ uri: item.cloudinaryUrl || item.uri || item.localUri }}
         style={styles.photoImage}
         resizeMode="cover"
