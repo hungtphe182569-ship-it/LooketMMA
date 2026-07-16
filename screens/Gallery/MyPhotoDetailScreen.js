@@ -7,7 +7,6 @@ import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
 import { deletePhotoFromCloudinary } from "../../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../../services/favoriteService";
-import { getReactions } from "../../services/reactionService";
 
 export default function MyPhotoDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -16,23 +15,10 @@ export default function MyPhotoDetailScreen({ route, navigation }) {
   const [favorited, setFavorited] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const translateY = useRef(new Animated.Value(300)).current;
-  const [reactionCount, setReactionCount] = useState(0);
-  const [reactionsList, setReactionsList] = useState([]);
 
   useEffect(() => {
     checkFavoriteStatus();
-    loadReactions();
   }, [photo?.id]);
-
-  const loadReactions = async () => {
-    if (!photo?.id) return;
-    try {
-      const reactions = await getReactions(photo.id);
-      const entries = Object.values(reactions);
-      setReactionCount(entries.length);
-      setReactionsList(entries);
-    } catch (e) { }
-  };
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -205,14 +191,6 @@ export default function MyPhotoDetailScreen({ route, navigation }) {
             <Text style={styles.posterCaption} numberOfLines={3}>{caption}</Text>
           ) : null}
 
-          {/* Received reactions display */}
-          {reactionCount > 0 && (
-            <View style={styles.receivedReactions}>
-              <Text style={styles.receivedReactionsText}>
-                {reactionsList.map(r => r.emoji).join(" ")} · {reactionCount} cảm xúc
-              </Text>
-            </View>
-          )}
         </LinearGradient>
       </View>
 

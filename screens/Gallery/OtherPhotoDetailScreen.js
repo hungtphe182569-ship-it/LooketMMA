@@ -5,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
-import { addReaction, removeReaction, getReactions, EMOJI_LIST } from "../../services/reactionService";
 
 export default function OtherPhotoDetailScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -13,9 +12,6 @@ export default function OtherPhotoDetailScreen({ route, navigation }) {
   const photo = route?.params?.photo;
   const [showInfo, setShowInfo] = useState(false);
   const translateY = useRef(new Animated.Value(300)).current;
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [myReaction, setMyReaction] = useState(null);
-  const [reactionCount, setReactionCount] = useState(0);
 
   useEffect(() => {
     Animated.spring(translateY, {
@@ -48,51 +44,6 @@ export default function OtherPhotoDetailScreen({ route, navigation }) {
       },
     })
   ).current;
-
-  useEffect(() => {
-    loadReaction();
-  }, [photo?.id]);
-
-  const loadReaction = async () => {
-    if (!photo?.id || !user?.uid) return;
-    try {
-      const reactions = await getReactions(photo.id);
-      setReactionCount(Object.keys(reactions).length);
-      if (reactions[user.uid]) {
-        setMyReaction(reactions[user.uid].emoji);
-      }
-    } catch (e) { }
-  };
-
-  const handleReaction = async (emoji) => {
-    setShowEmojiPicker(false);
-    if (!user?.uid || !photo?.id) return;
-    const imageUri = photo.cloudinaryUrl || photo.uri || photo.localUri;
-    const caption = photo.caption || photo.note || "";
-    try {
-      if (myReaction === emoji) {
-        await removeReaction(user.uid, photo.id);
-        setMyReaction(null);
-        setReactionCount(prev => Math.max(0, prev - 1));
-      } else {
-        await addReaction(
-          user.uid,
-          photo.id,
-          emoji,
-          user.displayName || "Bạn",
-          photo.userId,
-          {
-            photoUrl: imageUri,
-            caption,
-          }
-        );
-        setMyReaction(emoji);
-        if (!myReaction) setReactionCount(prev => prev + 1);
-      }
-    } catch (e) {
-      console.error("Reaction error:", e);
-    }
-  };
 
   if (!photo) {
     return (
@@ -155,30 +106,6 @@ export default function OtherPhotoDetailScreen({ route, navigation }) {
             <Text style={styles.posterCaption} numberOfLines={3}>{caption}</Text>
           ) : null}
 
-          {/* Emoji reaction row */}
-          <View style={styles.emojiReactionArea}>
-            <TouchableOpacity
-              style={[styles.emojiReactionBtn, myReaction && styles.emojiReactionBtnActive]}
-              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-            >
-              <Text style={styles.emojiReactionBtnText}>
-                {myReaction || "😀"} {reactionCount > 0 ? reactionCount : "Thả cảm xúc"}
-              </Text>
-            </TouchableOpacity>
-            {showEmojiPicker && (
-              <View style={styles.emojiPickerRow}>
-                {EMOJI_LIST.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={[styles.emojiPickerBtn, myReaction === emoji && styles.emojiPickerBtnActive]}
-                    onPress={() => handleReaction(emoji)}
-                  >
-                    <Text style={styles.emojiPickerText}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
         </LinearGradient>
       </View>
 

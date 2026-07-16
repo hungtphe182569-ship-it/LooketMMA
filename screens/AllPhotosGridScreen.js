@@ -21,7 +21,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import SafeImage from "../components/SafeImage";
 import { AuthContext } from "../context/AuthContext";
 import { getUserAlbum, getFriendsRecentPhotos } from "../services/userAlbumService";
-import { addReaction, removeReaction, getReactions, EMOJI_LIST } from "../services/reactionService";
 import { getOrCreateChat, sendMessage, sendImageMessage } from "../services/chatService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -41,9 +40,6 @@ function getTimeAgo(dateValue) {
 }
 
 function PhotoPageCard({ item, currentUser, navigation, keyboardVisible, onInputFocus, onInputBlur }) {
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [myReaction, setMyReaction] = useState(null);
-    const [reactionCount, setReactionCount] = useState(0);
     const [replyText, setReplyText] = useState("");
     const [sendingReply, setSendingReply] = useState(false);
 
@@ -53,51 +49,6 @@ function PhotoPageCard({ item, currentUser, navigation, keyboardVisible, onInput
     const avatarUri = (isOwn ? currentUser?.avatar : null) || item.userAvatar || item.senderAvatar || item.avatar || null;
     const timeAgo = getTimeAgo(item.createdAt);
     const caption = item.caption || item.note || "";
-
-    useEffect(() => {
-        const loadReaction = async () => {
-            if (!item?.id || !currentUser?.uid) return;
-            try {
-                const reactions = await getReactions(item.id);
-                setReactionCount(Object.keys(reactions || {}).length);
-                if (reactions?.[currentUser.uid]) {
-                    setMyReaction(reactions[currentUser.uid].emoji);
-                }
-            } catch (e) {
-                console.warn("loadReaction error:", e?.message || e);
-            }
-        };
-
-        loadReaction();
-    }, [item?.id, currentUser?.uid]);
-
-    const handleReaction = async (emoji) => {
-        setShowEmojiPicker(false);
-        if (!currentUser?.uid || !item?.id) return;
-        try {
-            if (myReaction === emoji) {
-                await removeReaction(currentUser.uid, item.id);
-                setMyReaction(null);
-                setReactionCount((prev) => Math.max(0, prev - 1));
-            } else {
-                await addReaction(
-                    currentUser.uid,
-                    item.id,
-                    emoji,
-                    currentUser.displayName || "Bạn",
-                    item.userId,
-                    {
-                        photoUrl: imageUri,
-                        caption,
-                    }
-                );
-                setMyReaction(emoji);
-                if (!myReaction) setReactionCount((prev) => prev + 1);
-            }
-        } catch (e) {
-            console.error("Reaction error:", e);
-        }
-    };
 
     const handleSendReply = async () => {
         if (isOwn || !replyText.trim() || !currentUser?.uid || !item.userId || sendingReply) return;
@@ -160,7 +111,7 @@ function PhotoPageCard({ item, currentUser, navigation, keyboardVisible, onInput
                     <View style={styles.replyInputRow}>
                         <TextInput
                             style={styles.replyInput}
-                            placeholder="Gửi tin nhắn..."
+                            placeholder="Bình luận về ảnh..."
                             placeholderTextColor="#9f9f9f"
                             value={replyText}
                             onChangeText={setReplyText}
@@ -182,33 +133,7 @@ function PhotoPageCard({ item, currentUser, navigation, keyboardVisible, onInput
                                 <Ionicons name="send" size={16} color="#fff" />
                             )}
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.moreEmojiBtn}
-                            onPress={() => setShowEmojiPicker((prev) => !prev)}
-                        >
-                            <Ionicons name="happy-outline" size={20} color="#d8d8d8" />
-                        </TouchableOpacity>
                     </View>
-
-                    {showEmojiPicker && (
-                        <View style={styles.emojiPickerRow}>
-                            {EMOJI_LIST.map((emoji) => (
-                                <TouchableOpacity
-                                    key={emoji}
-                                    style={[styles.emojiPickerBtn, myReaction === emoji && styles.emojiPickerBtnActive]}
-                                    onPress={() => handleReaction(emoji)}
-                                >
-                                    <Text style={styles.emojiPickerText}>{emoji}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    )}
-                </View>
-            )}
-
-            {isOwn && (
-                <View style={styles.replyPanel}>
-                    <Text style={styles.ownReactionText}>{reactionCount} cảm xúc</Text>
                 </View>
             )}
         </View>

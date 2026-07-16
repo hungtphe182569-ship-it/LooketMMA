@@ -13,7 +13,6 @@ import * as FileSystem from "expo-file-system/legacy";
 import { savePhotoToCloudinary } from "../services/cloudinaryPhotoService";
 import { addPhotoToUserAlbum, getUserAlbum, getFriendsRecentPhotos } from "../services/userAlbumService";
 import { notifyFriendsAboutNewPhoto } from "../services/notificationService";
-import { addReaction, removeReaction, getReactions, getUserReaction, EMOJI_LIST } from "../services/reactionService";
 import { getOrCreateChat, sendMessage, sendImageMessage } from "../services/chatService";
 import SafeImage from "../components/SafeImage";
 import { AuthContext } from "../context/AuthContext";
@@ -36,32 +35,8 @@ function getTimeAgo(dateStr) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
-// ─── Emoji Picker ─────────────────────────────────────
-function EmojiPicker({ visible, onSelect, onClose, currentEmoji }) {
-  if (!visible) return null;
-  return (
-    <View style={styles.emojiPickerOverlay}>
-      <TouchableOpacity style={styles.emojiPickerBackdrop} onPress={onClose} activeOpacity={1} />
-      <View style={styles.emojiPickerContainer}>
-        {EMOJI_LIST.map((emoji) => (
-          <TouchableOpacity
-            key={emoji}
-            style={[styles.emojiButton, currentEmoji === emoji && styles.emojiButtonActive]}
-            onPress={() => onSelect(emoji)}
-          >
-            <Text style={styles.emojiText}>{emoji}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 // ─── Feed Card ─────────────────────────────────────────
 function CameraFeedCard({ item, currentUser, navigation }) {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [myReaction, setMyReaction] = useState(null);
-  const [reactionCount, setReactionCount] = useState(0);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
 
@@ -70,49 +45,6 @@ function CameraFeedCard({ item, currentUser, navigation }) {
   const caption = item.caption || item.note || "";
   const timeAgo = item.createdAt ? getTimeAgo(item.createdAt) : "";
   const imageUri = item.cloudinaryUrl || item.uri || item.localUri;
-
-  useEffect(() => {
-    loadReaction();
-  }, [item?.id]);
-
-  const loadReaction = async () => {
-    if (!item?.id || !currentUser?.uid) return;
-    try {
-      const reactions = await getReactions(item.id);
-      setReactionCount(Object.keys(reactions).length);
-      if (reactions[currentUser.uid]) {
-        setMyReaction(reactions[currentUser.uid].emoji);
-      }
-    } catch (e) { }
-  };
-
-  const handleReaction = async (emoji) => {
-    setShowEmojiPicker(false);
-    if (!currentUser?.uid || !item?.id) return;
-    try {
-      if (myReaction === emoji) {
-        await removeReaction(currentUser.uid, item.id);
-        setMyReaction(null);
-        setReactionCount(prev => Math.max(0, prev - 1));
-      } else {
-        await addReaction(
-          currentUser.uid,
-          item.id,
-          emoji,
-          currentUser.displayName || "Bạn",
-          item.userId,
-          {
-            photoUrl: imageUri,
-            caption,
-          }
-        );
-        setMyReaction(emoji);
-        if (!myReaction) setReactionCount(prev => prev + 1);
-      }
-    } catch (e) {
-      console.error("Reaction error:", e);
-    }
-  };
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !currentUser?.uid || !item.userId || sendingReply) return;
@@ -176,30 +108,13 @@ function CameraFeedCard({ item, currentUser, navigation }) {
         </View>
       </TouchableOpacity>
 
-      {/* Reaction + Reply bar (for friends' photos) */}
+      {/* Comment bar for friends' photos */}
       {!isOwn && (
-        <View style={styles.reactionBar}>
-          <View style={styles.reactionRow}>
-            <TouchableOpacity
-              style={[styles.reactionBtn, myReaction && styles.reactionBtnActive]}
-              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-            >
-              <Text style={styles.reactionBtnText}>
-                {myReaction || "😀"} {reactionCount > 0 ? reactionCount : "Thả cảm xúc"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <EmojiPicker
-            visible={showEmojiPicker}
-            onSelect={handleReaction}
-            onClose={() => setShowEmojiPicker(false)}
-            currentEmoji={myReaction}
-          />
-          {/* Reply input */}
+        <View style={styles.commentBar}>
           <View style={styles.replyInputRow}>
             <TextInput
               style={styles.replyInput}
-              placeholder="Gửi tin nhắn..."
+              placeholder="Bình luận về ảnh..."
               placeholderTextColor="#888"
               value={replyText}
               onChangeText={setReplyText}
@@ -216,17 +131,6 @@ function CameraFeedCard({ item, currentUser, navigation }) {
                 <Ionicons name="send" size={16} color="#fff" />
               )}
             </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Show reaction count for own photos */}
-      {isOwn && reactionCount > 0 && (
-        <View style={styles.reactionBar}>
-          <View style={styles.reactionInfo}>
-            <Text style={styles.reactionInfoText}>
-              {reactionCount} cảm xúc
-            </Text>
           </View>
         </View>
       )}
@@ -1092,44 +996,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // ── Reaction ──
-  reactionBar: {
+  // ── Photo comment ──
+  commentBar: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     position: "relative",
-  },
-  reactionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  reactionBtnActive: {
-    backgroundColor: "rgba(84,182,248,0.2)",
-    borderColor: "rgba(84,182,248,0.4)",
-  },
-  reactionBtnText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  reactionInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  reactionInfoText: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 13,
-  },
-  reactionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
   },
   replyInputRow: {
     flexDirection: "row",
@@ -1159,41 +1030,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
   },
 
-  // ── Emoji Picker ──
-  emojiPickerOverlay: {
-    position: "absolute",
-    bottom: 48,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-  },
-  emojiPickerBackdrop: {
-    position: "absolute",
-    top: -500,
-    bottom: -500,
-    left: -500,
-    right: -500,
-  },
-  emojiPickerContainer: {
-    flexDirection: "row",
-    backgroundColor: "#2a2a2a",
-    borderRadius: 28,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginHorizontal: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  emojiButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
   emojiButtonActive: {
     backgroundColor: "rgba(84,182,248,0.3)",
   },

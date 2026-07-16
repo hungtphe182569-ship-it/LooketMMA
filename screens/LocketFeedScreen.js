@@ -19,7 +19,6 @@ import { AuthContext } from "../context/AuthContext";
 import { getUserAlbum, getFriendsRecentPhotos } from "../services/userAlbumService";
 import { getAllPhotos, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../services/favoriteService";
-import { addReaction, removeReaction, getReactions, EMOJI_LIST } from "../services/reactionService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -27,9 +26,6 @@ function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
   const [favorited, setFavorited] = useState(false);
   const [showCaption, setShowCaption] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [myReaction, setMyReaction] = useState(null);
-  const [reactionCount, setReactionCount] = useState(0);
 
   useEffect(() => {
     if (isActive) {
@@ -45,52 +41,12 @@ function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
 
   useEffect(() => {
     checkFav();
-    loadReaction();
   }, [item?.id]);
 
   const checkFav = async () => {
     if (currentUser?.uid && item?.id) {
       const status = await isFavorited(currentUser.uid, item.id);
       setFavorited(status);
-    }
-  };
-
-  const loadReaction = async () => {
-    if (!item?.id || !currentUser?.uid) return;
-    try {
-      const reactions = await getReactions(item.id);
-      setReactionCount(Object.keys(reactions).length);
-      if (reactions[currentUser.uid]) {
-        setMyReaction(reactions[currentUser.uid].emoji);
-      }
-    } catch (e) { }
-  };
-
-  const handleReaction = async (emoji) => {
-    setShowEmojiPicker(false);
-    if (!currentUser?.uid || !item?.id) return;
-    try {
-      if (myReaction === emoji) {
-        await removeReaction(currentUser.uid, item.id);
-        setMyReaction(null);
-        setReactionCount(prev => Math.max(0, prev - 1));
-      } else {
-        await addReaction(
-          currentUser.uid,
-          item.id,
-          emoji,
-          currentUser.displayName || "Bạn",
-          item.userId,
-          {
-            photoUrl: imageUri,
-            caption,
-          }
-        );
-        setMyReaction(emoji);
-        if (!myReaction) setReactionCount(prev => prev + 1);
-      }
-    } catch (e) {
-      console.error("Reaction error:", e);
     }
   };
 
@@ -176,7 +132,7 @@ function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
           </Text>
         ) : null}
 
-        {/* Favorite/reaction button */}
+        {/* Favorite actions */}
         {isOwn && (
           <View style={styles.ownActions}>
             <TouchableOpacity onPress={toggleFavorite} style={styles.actionCircle}>
@@ -189,38 +145,6 @@ function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
             <TouchableOpacity onPress={handleDelete} style={styles.actionCircle}>
               <Ionicons name="trash-outline" size={22} color="#fff" />
             </TouchableOpacity>
-            {reactionCount > 0 && (
-              <View style={styles.reactionCountBadge}>
-                <Text style={styles.reactionCountText}>{reactionCount} cảm xúc</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Emoji reaction for friends' photos */}
-        {!isOwn && (
-          <View style={styles.friendReactionRow}>
-            <TouchableOpacity
-              style={[styles.emojiReactionBtn, myReaction && styles.emojiReactionBtnActive]}
-              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-            >
-              <Text style={styles.emojiReactionBtnText}>
-                {myReaction || "😀"} {reactionCount > 0 ? reactionCount : "Thả cảm xúc"}
-              </Text>
-            </TouchableOpacity>
-            {showEmojiPicker && (
-              <View style={styles.emojiPickerRow}>
-                {EMOJI_LIST.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={[styles.emojiPickerBtn, myReaction === emoji && styles.emojiPickerBtnActive]}
-                    onPress={() => handleReaction(emoji)}
-                  >
-                    <Text style={styles.emojiPickerText}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
           </View>
         )}
 
