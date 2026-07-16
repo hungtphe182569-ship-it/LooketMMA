@@ -26,11 +26,6 @@ function pickRemotePhotoUrl(photoData) {
   );
 }
 
-function isShareablePhoto(photo) {
-  const url = pickRemotePhotoUrl(photo);
-  return typeof url === "string" && /^https?:\/\//i.test(url.trim());
-}
-
 // Firestore structure:
 // userAlbums/{userId} = {
 //   userId: string,
@@ -261,14 +256,10 @@ export async function getFriendAlbum(currentUserId, friendId) {
     const friendAlbum = await getUserAlbum(friendId);
     return {
       ...friendAlbum,
-      photos: (friendAlbum.photos || [])
-        .filter(isShareablePhoto)
-        .map(photo => ({
-          ...photo,
-          userId: photo.userId || friendId,
-          cloudinaryUrl: pickRemotePhotoUrl(photo),
-          uri: pickRemotePhotoUrl(photo),
-        })),
+      photos: (friendAlbum.photos || []).map(photo => ({
+        ...photo,
+        userId: photo.userId || friendId,
+      })),
     };
   } catch (error) {
     console.error("❌ Error getting friend album:", error);
@@ -400,12 +391,7 @@ export async function getFriendsRecentPhotos(userId, maxPhotos = 20) {
             userAvatar = userData.avatar || null;
           }
         } catch (e) { }
-        return {
-          ...album,
-          photos: (album.photos || []).filter(isShareablePhoto),
-          userName,
-          userAvatar,
-        };
+        return { ...album, userName, userAvatar };
       })
     );
 

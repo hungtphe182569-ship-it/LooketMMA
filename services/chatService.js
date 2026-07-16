@@ -183,10 +183,7 @@ export async function sendImageMessage(chatId, senderId, imageUrl, caption = '')
     const now = Timestamp.now();
 
     // Ensure imageUrl is a string
-    const imageUrlString = String(imageUrl || '').trim();
-    if (!/^https?:\/\//i.test(imageUrlString)) {
-      throw new Error('Ảnh tin nhắn phải được tải lên máy chủ trước khi gửi');
-    }
+    const imageUrlString = String(imageUrl || '');
 
     // Add message with server timestamp
     const messageData = {

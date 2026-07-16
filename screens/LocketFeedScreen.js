@@ -10,19 +10,20 @@ import {
   StatusBar,
   RefreshControl,
   Animated,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import SafeImage from "../components/SafeImage";
 import { AuthContext } from "../context/AuthContext";
 import { getUserAlbum, getFriendsRecentPhotos } from "../services/userAlbumService";
-import { getAllPhotos } from "../services/cloudinaryPhotoService";
+import { getAllPhotos, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../services/favoriteService";
 import { addReaction, removeReaction, getReactions, EMOJI_LIST } from "../services/reactionService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-function FeedItem({ item, isActive, currentUser }) {
+function FeedItem({ item, isActive, currentUser, onDeleteItem }) {
   const [favorited, setFavorited] = useState(false);
   const [showCaption, setShowCaption] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -108,6 +109,28 @@ function FeedItem({ item, isActive, currentUser }) {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Xóa ảnh',
+      'Bạn có chắc chắn muốn xóa ảnh này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePhotoFromCloudinary(item.id, currentUser.uid);
+              if (onDeleteItem) onDeleteItem(item.id);
+            } catch (e) {
+              Alert.alert('Lỗi', 'Không thể xóa ảnh: ' + (e?.message || String(e)));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const imageUri = item.cloudinaryUrl || item.uri || item.localUri;
   const caption = item.caption || item.note || "";
   const isOwn = !item.userId || item.userId === currentUser?.uid;
@@ -162,6 +185,9 @@ function FeedItem({ item, isActive, currentUser }) {
                 size={26}
                 color={favorited ? "#ff3b30" : "#fff"}
               />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete} style={styles.actionCircle}>
+              <Ionicons name="trash-outline" size={22} color="#fff" />
             </TouchableOpacity>
             {reactionCount > 0 && (
               <View style={styles.reactionCountBadge}>
@@ -271,12 +297,12 @@ export default function LocketFeedScreen({ route, navigation }) {
       // Sort newest first
       allPhotos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Only decorate a new photo if it still exists in a data source. Route
-      // params must never restore a photo that was deleted from Album.
-      if (newPhoto && allPhotos.some((p) => String(p.id) === String(newPhoto.id))) {
-        allPhotos = allPhotos.map((p) =>
-          String(p.id) === String(newPhoto.id) ? { ...p, _isNewPost: true } : p
-        );
+      // If we have a new photo, put it first (with badge)
+      if (newPhoto) {
+        // Remove it from list if already present
+        allPhotos = allPhotos.filter((p) => p.id !== newPhoto.id);
+        // Add to front with badge
+        allPhotos.unshift({ ...newPhoto, _isNewPost: true, userId: user.uid });
       }
 
       setFeedItems(allPhotos);
@@ -322,15 +348,20 @@ export default function LocketFeedScreen({ route, navigation }) {
     itemVisiblePercentThreshold: 60,
   }).current;
 
+  const handleDeleteFeedItem = useCallback((photoId) => {
+    setFeedItems(prev => prev.filter(p => p.id !== photoId));
+  }, []);
+
   const renderItem = useCallback(
     ({ item, index }) => (
       <FeedItem
         item={item}
         isActive={index === activeIndex}
         currentUser={user}
+        onDeleteItem={handleDeleteFeedItem}
       />
     ),
-    [activeIndex, user]
+    [activeIndex, user, handleDeleteFeedItem]
   );
 
   if (loading) {

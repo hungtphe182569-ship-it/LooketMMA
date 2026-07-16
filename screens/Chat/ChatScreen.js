@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from "../../context/AuthContext";
 import { navigateToPhotoDetail } from "../../utils/navigationHelper";
 import { subscribeToMessages, sendMessage, sendImageMessage, markMessagesAsRead, deleteAllMessages } from '../../services/chatService';
-import { uploadImageToCloudinary } from '../../services/cloudinaryPhotoService';
+import { uploadAvatar } from '../../services/authService';
 import { getRelativeTime } from '../../utils/dateUtils';
 
 export default function ChatScreen({ route, navigation }) {
@@ -123,13 +123,14 @@ export default function ChatScreen({ route, navigation }) {
           const asset = result.assets[0];
           const uri = asset.uri;
           
-          const uploadResult = await uploadImageToCloudinary(uri, user.uid);
+          // Upload image to Cloudinary when configured; otherwise use local URI.
+          const uploadResult = await uploadAvatar(uri, user.uid);
           
           // Extract the secure URL from the upload result
-          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url;
+          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url || uri;
           
-          if (!imageUrlString || !/^https?:\/\//i.test(imageUrlString)) {
-            throw new Error('Không thể tải ảnh lên máy chủ để người nhận xem');
+          if (!imageUrlString) {
+            throw new Error('Không nhận được URL ảnh từ Cloudinary');
           }
           
           console.log('Image URL:', imageUrlString);

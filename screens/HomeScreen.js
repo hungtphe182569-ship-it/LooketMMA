@@ -7,6 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import SafeImage from "../components/SafeImage";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +19,7 @@ import { db } from "../services/firebase";
 import { useNotifications } from "../context/NotificationContext";
 import { Text } from "../components/ui";
 import { getUserAlbum } from "../services/userAlbumService";
-import { getAllPhotos } from "../services/cloudinaryPhotoService";
+import { getAllPhotos, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../services/favoriteService";
 import { subscribeToUserChats, getUnreadCount } from "../services/chatService";
 
@@ -41,7 +42,7 @@ function getTimeAgo(dateStr) {
 }
 
 // ─── Feed Card (own photos only) ───────────────────────
-function OwnFeedCard({ item, currentUser }) {
+function OwnFeedCard({ item, currentUser, onDelete }) {
   const [favorited, setFavorited] = useState(false);
 
   useEffect(() => {
@@ -70,6 +71,28 @@ function OwnFeedCard({ item, currentUser }) {
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Xóa ảnh',
+      'Bạn có chắc chắn muốn xóa ảnh này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePhotoFromCloudinary(item.id, currentUser.uid);
+              if (onDelete) onDelete(item.id);
+            } catch (e) {
+              Alert.alert('Lỗi', 'Không thể xóa ảnh: ' + (e?.message || String(e)));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const imageUri = item.cloudinaryUrl || item.uri || item.localUri;
   const caption = item.caption || item.note || "";
   const timeAgo = item.createdAt ? getTimeAgo(item.createdAt) : "";
@@ -96,6 +119,9 @@ function OwnFeedCard({ item, currentUser }) {
               size={22}
               color={favorited ? "#ff3b30" : "#fff"}
             />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete} style={styles.actionBtn}>
+            <Ionicons name="trash-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -229,9 +255,13 @@ export default function HomeScreen({ navigation }) {
     { icon: "heart", label: "Yêu thích", color: "#ff3b30", onPress: () => navigation.navigate('FavoritePhotos') },
   ];
 
+  const handleDeletePhoto = useCallback((photoId) => {
+    setOwnPhotos(prev => prev.filter(p => p.id !== photoId));
+  }, []);
+
   const renderFeedItem = useCallback(({ item }) => (
-    <OwnFeedCard item={item} currentUser={user} />
-  ), [user]);
+    <OwnFeedCard item={item} currentUser={user} onDelete={handleDeletePhoto} />
+  ), [user, handleDeletePhoto]);
 
   return (
     <View style={styles.container}>

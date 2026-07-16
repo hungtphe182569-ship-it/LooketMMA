@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, PanResponder, Alert } from "react-native";
 import SafeImage from "../../components/SafeImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { AuthContext } from "../../context/AuthContext";
+import { deletePhotoFromCloudinary } from "../../services/cloudinaryPhotoService";
 import { addToFavorites, removeFromFavorites, isFavorited } from "../../services/favoriteService";
 
 export default function PhotoDetailScreen({ route, navigation }) {
@@ -76,6 +77,39 @@ export default function PhotoDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleDeletePhoto = () => {
+    Alert.alert(
+      'Xóa ảnh',
+      'Bạn có chắc chắn muốn xóa ảnh này?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Deleting photo:', photo.id, 'for user:', photo.userId);
+              const result = await deletePhotoFromCloudinary(photo.id, photo.userId || user.uid);
+              console.log('Delete result:', result);
+              Alert.alert('Thành công', 'Đã xóa ảnh', [
+                {
+                  text: 'OK',
+                  onPress: () => navigation.goBack()
+                }
+              ]);
+            } catch (error) {
+              console.error('Error deleting photo:', error);
+              Alert.alert('Lỗi', 'Không thể xóa ảnh');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (!photo) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
@@ -117,6 +151,13 @@ export default function PhotoDetailScreen({ route, navigation }) {
                 size={26} 
                 color={favorited ? "#ff3b30" : "#fff"} 
               />
+            </TouchableOpacity>
+          )}
+          {isOwnPhoto && (
+            <TouchableOpacity 
+              onPress={handleDeletePhoto}
+              style={styles.headerButton}>
+              <Ionicons name="trash-outline" size={24} color="#fff" />
             </TouchableOpacity>
           )}
         </View>

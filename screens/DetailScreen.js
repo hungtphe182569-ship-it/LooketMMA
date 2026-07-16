@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 import { AuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { subscribePhotoUpdates, refreshLabels } from "../services/cloudinaryPhotoService";
+import { subscribePhotoUpdates, refreshLabels, deletePhotoFromCloudinary } from "../services/cloudinaryPhotoService";
 import Button from "../components/Button";
 import Card from "../components/Card";
 
@@ -56,6 +56,14 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
+  const onDelete = async () => {
+    if (!user || !photo?.id) return;
+    try {
+      await deletePhotoFromCloudinary(photo.id, user.uid || user.id);
+      navigation.goBack();
+    } catch {}
+  };
+
   // Support both old and new data formats
   const labels = photo.labels || photo.aiAnalysis?.labels || photo.tags || [];
   const hasLabels = Array.isArray(labels) && labels.length > 0;
@@ -72,7 +80,9 @@ export default function DetailScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <View style={{ width: 22 }} />
+        <TouchableOpacity onPress={onDelete}>
+          <Ionicons name="trash" size={22} color={theme.colors.error} />
+        </TouchableOpacity>
       </View>
       {/* Image */}
       <View style={styles.imageContainer}>
@@ -314,3 +324,4 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 });
+
