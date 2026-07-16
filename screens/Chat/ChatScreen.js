@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AuthContext } from "../../context/AuthContext";
 import { navigateToPhotoDetail } from "../../utils/navigationHelper";
 import { subscribeToMessages, sendMessage, sendImageMessage, markMessagesAsRead, deleteAllMessages } from '../../services/chatService';
-import { uploadAvatar } from '../../services/authService';
+import { uploadImageToCloudinary } from '../../services/cloudinaryPhotoService';
 import { getRelativeTime } from '../../utils/dateUtils';
 
 export default function ChatScreen({ route, navigation }) {
@@ -123,14 +123,15 @@ export default function ChatScreen({ route, navigation }) {
           const asset = result.assets[0];
           const uri = asset.uri;
           
-          // Upload image to Cloudinary when configured; otherwise use local URI.
-          const uploadResult = await uploadAvatar(uri, user.uid);
+          // Chat images must use a remote URL. A file:// URL only exists on the
+          // sender's phone, so the recipient can never display it.
+          const uploadResult = await uploadImageToCloudinary(uri, user.uid);
           
           // Extract the secure URL from the upload result
-          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url || uri;
+          const imageUrlString = uploadResult.secureUrl || uploadResult.secure_url;
           
-          if (!imageUrlString) {
-            throw new Error('Không nhận được URL ảnh từ Cloudinary');
+          if (!imageUrlString || !/^https?:\/\//i.test(imageUrlString)) {
+            throw new Error('Ảnh chưa được tải lên máy chủ');
           }
           
           console.log('Image URL:', imageUrlString);

@@ -182,8 +182,11 @@ export async function sendImageMessage(chatId, senderId, imageUrl, caption = '')
 
     const now = Timestamp.now();
 
-    // Ensure imageUrl is a string
-    const imageUrlString = String(imageUrl || '');
+    // Never persist local device paths: they work for the sender only.
+    const imageUrlString = String(imageUrl || '').trim();
+    if (!/^https?:\/\//i.test(imageUrlString)) {
+      throw new Error('Ảnh tin nhắn phải có URL máy chủ hợp lệ');
+    }
 
     // Add message with server timestamp
     const messageData = {
